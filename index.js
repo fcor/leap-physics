@@ -1,7 +1,9 @@
-var camera, scene, renderer;
+var camera, scene, renderer, hands;
+
+var sphereGeometry = new THREE.SphereGeometry(4, 32, 32);
 
 var material = new THREE.MeshPhongMaterial({
-  color: 0x156289,
+  color: 0x440381,
   emissive: 0x072534,
   side: THREE.DoubleSide,
   shading: THREE.FlatShading,
@@ -12,15 +14,16 @@ animate();
 
 function init() {
   camera = new THREE.PerspectiveCamera(
-    50,
+    60,
     window.innerWidth / window.innerHeight,
     0.1,
-    100
+    1000
   );
-  camera.position.set(-2, 2, 2.3);
+  camera.position.set(0, 250, 300);
+  camera.lookAt(new THREE.Vector3(0, 250, 0));
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color("skyblue");
+  // scene.background = new THREE.Color("skyblue");
   // scene.fog = new THREE.Fog(0xa0a0a0, 6, 1000);
 
   // Ground
@@ -35,27 +38,44 @@ function init() {
   var floorMesh = new THREE.Mesh(floorGeometry, floorMat);
   floorMesh.receiveShadow = true;
   floorMesh.rotation.x = -Math.PI / 2.0;
+  floorMesh.position.set(0, 100, 0);
   scene.add(floorMesh);
 
+  // Lights
   var light1 = new THREE.HemisphereLight(0xffffff, 0x424242, 1);
-	var light2 = new THREE.PointLight(0xffffff, 0.3, 0);
-	light2.position.set(0,500,500);
-	// light2.castShadow = true;
-	light2.shadow.mapSize = new THREE.Vector2(2048, 2048);
-	var light3 =  new THREE.PointLight(0xffffff, 0.2, 0);
-	light3.position.y = 500;
-	light3.castShadow = true;
-	light3.shadow.mapSize = new THREE.Vector2(2048, 2048);
-	scene.add(light1);
-	scene.add(light2);
-	scene.add(light3);
+  var light2 = new THREE.PointLight(0xffffff, 0.3, 0);
+  light2.position.set(0, 500, 500);
+  // light2.castShadow = true;
+  light2.shadow.mapSize = new THREE.Vector2(2048, 2048);
+  var light3 = new THREE.PointLight(0xffffff, 0.2, 0);
+  light3.position.y = 500;
+  light3.castShadow = true;
+  light3.shadow.mapSize = new THREE.Vector2(2048, 2048);
+  scene.add(light1);
+  scene.add(light2);
+  scene.add(light3);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.toneMapping = THREE.ReinhardToneMapping;
+  var wall = new THREE.Mesh(new THREE.SphereGeometry(500,32,32), new THREE.MeshLambertMaterial({
+		color: 'skyblue',
+		side: THREE.BackSide
+	}));
+	wall.position.y = 400;
+	scene.add(wall);
+  
+  // Hands
+  hands = new THREE.Object3D();
+  for (var i = 0; i < 10; i++) {
+    var dip = new THREE.Mesh(sphereGeometry, material);
+    dip.castShadow = true;
+    hands.add(dip);
+  }
+  scene.add(hands);
+
+  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
-	renderer.shadowMapSoft = true;
+  renderer.shadowMapSoft = true;
   document.getElementById("three-output").appendChild(renderer.domElement);
 
   window.addEventListener("resize", onWindowResize, false);
@@ -75,3 +95,14 @@ function animate() {
 function render() {
   renderer.render(scene, camera);
 }
+
+Leap.loop(function (frame) {
+  if (frame.hands.length) {
+    for (var i = frame.hands.length - 1; i >= 0; i--) {
+      for (var j = frame.hands[i].fingers.length - 1; j >= 0; j--) {
+        var dip = frame.hands[i].fingers[j].dipPosition;
+        hands.children[5 * i + j].position.fromArray(dip);
+      }
+    }
+  }
+});
