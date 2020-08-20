@@ -1,14 +1,5 @@
 var camera, scene, renderer, hands;
 
-var sphereGeometry = new THREE.SphereGeometry(4, 32, 32);
-
-var material = new THREE.MeshPhongMaterial({
-  color: 0x440381,
-  emissive: 0x072534,
-  side: THREE.DoubleSide,
-  shading: THREE.FlatShading,
-});
-
 init();
 animate();
 
@@ -55,14 +46,25 @@ function init() {
   scene.add(light2);
   scene.add(light3);
 
-  var wall = new THREE.Mesh(new THREE.SphereGeometry(500,32,32), new THREE.MeshLambertMaterial({
-		color: 'skyblue',
-		side: THREE.BackSide
-	}));
-	wall.position.y = 400;
-	scene.add(wall);
-  
+  // Sky
+  var sky = new THREE.Mesh(
+    new THREE.SphereGeometry(500, 32, 32),
+    new THREE.MeshLambertMaterial({
+      color: "skyblue",
+      side: THREE.BackSide,
+    })
+  );
+  sky.position.y = 400;
+  scene.add(sky);
+
   // Hands
+  var sphereGeometry = new THREE.SphereGeometry(4, 32, 32);
+  var material = new THREE.MeshPhongMaterial({
+    color: 0x440381,
+    emissive: 0x072534,
+    side: THREE.DoubleSide,
+    shading: THREE.FlatShading,
+  });
   hands = new THREE.Object3D();
   for (var i = 0; i < 10; i++) {
     var dip = new THREE.Mesh(sphereGeometry, material);
@@ -70,6 +72,21 @@ function init() {
     hands.add(dip);
   }
   scene.add(hands);
+
+  // Cubes
+  var boxGeometry = new THREE.BoxGeometry(50, 100, 50);
+  var boxMaterial =  new THREE.MeshPhongMaterial({
+    color: 0x45F481,
+    emissive: 0x072534,
+    side: THREE.DoubleSide,
+    shading: THREE.FlatShading,
+  });
+  var cube = new THREE.Mesh(boxGeometry, boxMaterial);
+  cube.position.set(0, 160, -30);
+  cube.rotation.y =  45;
+  cube.castShadow = true;
+  cube.name = "Cube";
+  scene.add(cube);
 
   renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
