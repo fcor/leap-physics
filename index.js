@@ -1,4 +1,6 @@
-var camera, scene, renderer, hands;
+var camera, scene, renderer, hands, world, cube, cubeBody;
+var timestep = 1 / 60;
+var handBodies = [];
 
 init();
 animate();
@@ -14,22 +16,30 @@ function init() {
   camera.lookAt(new THREE.Vector3(0, 250, 0));
 
   scene = new THREE.Scene();
-  // scene.background = new THREE.Color("skyblue");
-  // scene.fog = new THREE.Fog(0xa0a0a0, 6, 1000);
+
+  world = new CANNON.World();
+  world.gravity.set(0, -100, 0);
 
   // Ground
+  var floorBody = new CANNON.Body({
+    mass: 0,
+    shape: new CANNON.Plane(),
+  });
+  floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+  floorBody.position.set(0, 100, 0);
+  world.add(floorBody);
+
   var floorMat = new THREE.MeshPhongMaterial({
     color: 0x156289,
     emissive: 0x072534,
     side: THREE.DoubleSide,
     shading: THREE.FlatShading,
   });
-
   var floorGeometry = new THREE.PlaneGeometry(500, 500);
   var floorMesh = new THREE.Mesh(floorGeometry, floorMat);
   floorMesh.receiveShadow = true;
-  floorMesh.rotation.x = -Math.PI / 2.0;
-  floorMesh.position.set(0, 100, 0);
+  floorMesh.position.copy(floorBody.position);
+  floorMesh.quaternion.copy(floorBody.quaternion);
   scene.add(floorMesh);
 
   // Lights
@@ -65,7 +75,18 @@ function init() {
     side: THREE.DoubleSide,
     shading: THREE.FlatShading,
   });
+
+  var sphereShape = new CANNON.Sphere(4);
+  for (var i = 0; i < 10; i++) {
+    handBodies.push(new CANNON.Body({ mass: 0, shape: sphereShape }));
+  }
+
+  for (var i = handBodies.length - 1; i >= 0; i--) {
+    world.add(handBodies[i]);
+  }
+
   hands = new THREE.Object3D();
+
   for (var i = 0; i < 10; i++) {
     var dip = new THREE.Mesh(sphereGeometry, material);
     dip.castShadow = true;
@@ -74,16 +95,22 @@ function init() {
   scene.add(hands);
 
   // Cubes
+  var cubeShape = new CANNON.Box(new CANNON.Vec3(50, 100, 50));
+  cubeBody = new CANNON.Body({ mass: 50, shape: cubeShape });
+  cubeBody.position.set(0, 190, -30);
+  // cubeBody.rotation.y = 45;
+  world.add(cubeBody);
+
   var boxGeometry = new THREE.BoxGeometry(50, 100, 50);
-  var boxMaterial =  new THREE.MeshPhongMaterial({
-    color: 0x45F481,
+  var boxMaterial = new THREE.MeshPhongMaterial({
+    color: 0x45f481,
     emissive: 0x072534,
     side: THREE.DoubleSide,
     shading: THREE.FlatShading,
   });
-  var cube = new THREE.Mesh(boxGeometry, boxMaterial);
-  cube.position.set(0, 160, -30);
-  cube.rotation.y =  45;
+  cube = new THREE.Mesh(boxGeometry, boxMaterial);
+  cube.position.copy(cubeBody.position);
+  // cube.rotation.y = 45;
   cube.castShadow = true;
   cube.name = "Cube";
   scene.add(cube);
@@ -107,6 +134,12 @@ function onWindowResize() {
 function animate() {
   requestAnimationFrame(animate);
   render();
+  world.step(timestep);
+  for (var i = handBodies.length - 1; i >= 0; i--) {
+    handBodies[i].position.copy(hands.children[i].position);
+  }
+  cube.position.copy(cubeBody.position);
+  cube.quaternion.copy(cubeBody.quaternion);
 }
 
 function render() {
