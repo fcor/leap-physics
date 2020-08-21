@@ -95,9 +95,9 @@ function init() {
   scene.add(hands);
 
   // Cubes
-  var cubeShape = new CANNON.Box(new CANNON.Vec3(50, 100, 50));
+  var cubeShape = new CANNON.Box(new CANNON.Vec3(25, 50, 25));
   cubeBody = new CANNON.Body({ mass: 50, shape: cubeShape });
-  cubeBody.position.set(0, 190, -30);
+  cubeBody.position.set(0, 190, -40);
   // cubeBody.rotation.y = 45;
   world.add(cubeBody);
 
