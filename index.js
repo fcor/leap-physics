@@ -1,28 +1,88 @@
-var camera,
-  scene,
-  renderer,
-  hands,
-  world,
-  cube,
-  cubeBody,
-  atom,
-  atoms,
-  cylinders;
+var camera, scene, renderer, hands, world, cylinders, atoms;
 var timestep = 1 / 60;
 var handBodies = [];
 var atomBodies = [];
 var bodies = [];
 var meshes = [];
-var cylinderBodies = [];
-var atomCoords = [
-  new THREE.Vector3(57.6, 195.89, -40.0),
-  new THREE.Vector3(16.38, 216.08, -40.0),
-  new THREE.Vector3(-16.38, 183.92, -40.0),
-  new THREE.Vector3(-57.6, 204.11, -40.0),
+var rawAtomCoords = [
+  new THREE.Vector3(1.92, -0.137, 0.0),
+  new THREE.Vector3(0.546, 0.536, 0.0),
+  new THREE.Vector3(-0.546, -0.536, 0.0),
+  new THREE.Vector3(-1.92, 0.137, 0.0),
+  new THREE.Vector3(2.021, -0.759, 0.89),
+  new THREE.Vector3(2.021, -0.759, -0.89),
+  new THREE.Vector3(2.699, 0.626, 0.0),
+  new THREE.Vector3(0.446, 1.157, 0.89),
+  new THREE.Vector3(0.446, 1.157, -0.89),
+  new THREE.Vector3(-0.446, -1.157, -0.89),
+  new THREE.Vector3(-0.446, -1.157, 0.89),
+  new THREE.Vector3(-2.021, 0.759, 0.89),
+  new THREE.Vector3(-2.021, 0.759, -0.89),
+  new THREE.Vector3(-2.699, -0.626, 0.0),
 ];
 
-var cylinder, cylinderBody;
+var constraints = [
+  { a: 1, b: 2, stick: true },
+  { a: 1, b: 5, stick: true },
+  { a: 1, b: 6, stick: true },
+  { a: 1, b: 7, stick: true },
+  { a: 2, b: 1, stick: true },
+  { a: 2, b: 3, stick: true },
+  { a: 2, b: 8, stick: true },
+  { a: 2, b: 9, stick: true },
+  { a: 3, b: 2, stick: true },
+  { a: 3, b: 4, stick: true },
+  { a: 3, b: 10, stick: true },
+  { a: 3, b: 11, stick: true },
+  { a: 4, b: 3, stick: true },
+  { a: 4, b: 12, stick: true },
+  { a: 4, b: 13, stick: true },
+  { a: 4, b: 14, stick: true },
+  { a: 5, b: 1, stick: true },
+  { a: 6, b: 1, stick: true },
+  { a: 7, b: 1, stick: true },
+  { a: 8, b: 2, stick: true },
+  { a: 9, b: 2, stick: true },
+  { a: 10, b: 3, stick: true },
+  { a: 11, b: 3, stick: true },
+  { a: 12, b: 4, stick: true },
+  { a: 13, b: 4, stick: true },
+  { a: 14, b: 4, stick: true },
+  { a: 5, b: 6, stick: false },
+  { a: 6, b: 7, stick: false },
+  { a: 5, b: 7, stick: false },
+  { a: 2, b: 5, stick: false },
+  { a: 2, b: 6, stick: false },
+  { a: 2, b: 7, stick: false },
+  { a: 2, b: 4, stick: false },
+  { a: 2, b: 10, stick: false },
+  { a: 2, b: 11, stick: false },
+  { a: 12, b: 13, stick: false },
+  { a: 13, b: 14, stick: false },
+  { a: 12, b: 14, stick: false },
+  { a: 3, b: 12, stick: false },
+  { a: 3, b: 13, stick: false },
+  { a: 3, b: 14, stick: false },
+  { a: 3, b: 9, stick: false },
+  { a: 3, b: 8, stick: false },
+  { a: 3, b: 1, stick: false },
+  { a: 1, b: 8, stick: false },
+  { a: 1, b: 9, stick: false },
+  { a: 4, b: 10, stick: false },
+  { a: 4, b: 11, stick: false },
+];
+
+var scale = 30;
+var translation = new THREE.Vector3(0, 190, -40);
+
 var cannonDebugRenderer;
+
+var atomCoords = rawAtomCoords.map(function(atomCoord, index) {
+  var atom = atomCoord;
+  atom.multiplyScalar(scale);
+  atom.add(translation);
+  return atom;
+});
 
 init();
 animate();
@@ -40,7 +100,7 @@ function init() {
   scene = new THREE.Scene();
 
   world = new CANNON.World();
-  world.gravity.set(0, -100, 0);
+  world.gravity.set(0, 0, 0);
 
   // cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world);
 
@@ -239,45 +299,81 @@ function addHands() {
 function addMolecule() {
   atoms = new THREE.Object3D();
   cylinders = new THREE.Object3D();
-  var atomMaterial = new THREE.MeshPhongMaterial({
-    color: 0xff0000,
-    emissive: 0x072534,
-    side: THREE.DoubleSide,
+  var carbonMaterial = new THREE.MeshPhongMaterial({
+    color: 0x909090,
     shading: THREE.FlatShading,
   });
-  var atomGeometry = new THREE.SphereGeometry(10, 32, 32);
 
+  var hydrogenMaterial = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    shading: THREE.FlatShading,
+  });
+
+  var atomGeometry = new THREE.SphereGeometry(10, 32, 32);
   var sphereShape = new CANNON.Sphere(10);
+
+  var mass = 1;
+
   for (var i = 0; i < atomCoords.length; i++) {
+    if (i === atomCoords.length - 1) {
+      mass = 0;
+    }
+    var atomMaterial = i < 4 ? carbonMaterial : hydrogenMaterial;
     var atom = new THREE.Mesh(atomGeometry, atomMaterial);
     atom.castShadow = true;
-    atom.position.set(atomCoords[i].x, atomCoords[i].y, atomCoords[i].z);
+    atom.position.set(
+      atomCoords[i].x,
+      atomCoords[i].y,
+      atomCoords[i].z
+    );
     atoms.add(atom);
     meshes.push(atom);
 
     var sphereBody = new CANNON.Body({
-      mass: 10,
+      mass: mass,
       shape: sphereShape,
     });
     sphereBody.position.copy(atom.position);
     bodies.push(sphereBody);
+    atomBodies.push(sphereBody);
     world.addBody(sphereBody);
   }
 
-  var bond1 = cylindricalSegment(atomCoords[0], atomCoords[1]);
-  var bond2 = cylindricalSegment(atomCoords[1], atomCoords[2]);
-  var bond3 = cylindricalSegment(atomCoords[1], atomCoords[3]);
+  for (var j = 0; j < constraints.length; j++) {
+    var firstAtom = constraints[j].a - 1;
+    var secondAtom = constraints[j].b - 1;
 
-  bond1.castShadow = true;
-  bond2.castShadow = true;
-  bond3.castShadow = true;
+    var c = new CANNON.DistanceConstraint(atomBodies[firstAtom], atomBodies[secondAtom]);
 
-  cylinders.add(bond1);
-  cylinders.add(bond2);
-  cylinders.add(bond3);
+    if(constraints[j].stick) {    
+      var bond = cylindricalSegment(atomCoords[firstAtom], atomCoords[secondAtom]);
+      bond.castShadow = true;
+      cylinders.add(bond);
+    }
+    world.addConstraint(c);
+  }
 
   scene.add(atoms);
   scene.add(cylinders);
+}
+
+function updateStick(cylinder, a1, a2) {
+  console.log("hey")
+  var A = new THREE.Vector3(a1.position.x, a1.position.y, a1.position.z);
+
+  var B = new THREE.Vector3(a2.position.x, a2.position.y, a2.position.z);
+
+  var vec = B.clone();
+  vec.sub(A);
+  var h = vec.length();
+  vec.normalize();
+  var quaternion = new THREE.Quaternion();
+  quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vec);
+  cylinder.position.set(0, 0, 0);
+  cylinder.rotation.set(0, 0, 0);
+  cylinder.translateOnAxis(0, h / 2, 0);
+  cylinder.applyQuaternion(quaternion);
+  cylinder.position.set(A.x, A.y, A.z);
 }
 
 // This function called during render will sync graphics & physics
@@ -289,5 +385,11 @@ function updateMeshPositions() {
 
   for (var i = handBodies.length - 1; i >= 0; i--) {
     handBodies[i].position.copy(hands.children[i].position);
+  }
+
+  for (var i = 0; i < cylinders.children.length;  i++) {
+    var firstAtom = constraints[i].a - 1;
+    var secondAtom = constraints[i].b - 1;
+    updateStick(cylinders.children[i], atoms.children[firstAtom], atoms.children[secondAtom]);
   }
 }
