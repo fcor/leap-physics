@@ -77,7 +77,7 @@ var translation = new THREE.Vector3(0, 190, -40);
 
 var cannonDebugRenderer;
 
-var atomCoords = rawAtomCoords.map(function(atomCoord, index) {
+var atomCoords = rawAtomCoords.map(function (atomCoord, index) {
   var atom = atomCoord;
   atom.multiplyScalar(scale);
   atom.add(translation);
@@ -321,11 +321,7 @@ function addMolecule() {
     var atomMaterial = i < 4 ? carbonMaterial : hydrogenMaterial;
     var atom = new THREE.Mesh(atomGeometry, atomMaterial);
     atom.castShadow = true;
-    atom.position.set(
-      atomCoords[i].x,
-      atomCoords[i].y,
-      atomCoords[i].z
-    );
+    atom.position.set(atomCoords[i].x, atomCoords[i].y, atomCoords[i].z);
     atoms.add(atom);
     meshes.push(atom);
 
@@ -343,10 +339,16 @@ function addMolecule() {
     var firstAtom = constraints[j].a - 1;
     var secondAtom = constraints[j].b - 1;
 
-    var c = new CANNON.DistanceConstraint(atomBodies[firstAtom], atomBodies[secondAtom]);
+    var c = new CANNON.DistanceConstraint(
+      atomBodies[firstAtom],
+      atomBodies[secondAtom]
+    );
 
-    if(constraints[j].stick) {    
-      var bond = cylindricalSegment(atomCoords[firstAtom], atomCoords[secondAtom]);
+    if (constraints[j].stick) {
+      var bond = cylindricalSegment(
+        atomCoords[firstAtom],
+        atomCoords[secondAtom]
+      );
       bond.castShadow = true;
       cylinders.add(bond);
     }
@@ -358,7 +360,6 @@ function addMolecule() {
 }
 
 function updateStick(cylinder, a1, a2) {
-  console.log("hey")
   var A = new THREE.Vector3(a1.position.x, a1.position.y, a1.position.z);
 
   var B = new THREE.Vector3(a2.position.x, a2.position.y, a2.position.z);
@@ -387,9 +388,13 @@ function updateMeshPositions() {
     handBodies[i].position.copy(hands.children[i].position);
   }
 
-  for (var i = 0; i < cylinders.children.length;  i++) {
+  for (var i = 0; i < cylinders.children.length; i++) {
     var firstAtom = constraints[i].a - 1;
     var secondAtom = constraints[i].b - 1;
-    updateStick(cylinders.children[i], atoms.children[firstAtom], atoms.children[secondAtom]);
+    updateStick(
+      cylinders.children[i],
+      atoms.children[firstAtom],
+      atoms.children[secondAtom]
+    );
   }
 }
