@@ -1,7 +1,10 @@
-var camera, scene, renderer, hands, world, cylinders, atoms;
+var camera, scene, renderer, dips, pips, mcps, palms, world, cylinders, atoms;
 var timestep = 1 / 60;
-var handBodies = [];
+var dipBodies = [];
+var pipBodies = [];
+var mcpBodies = [];
 var atomBodies = [];
+var palmBodies = [];
 var bodies = [];
 var meshes = [];
 var rawAtomCoords = [
@@ -72,8 +75,15 @@ var constraints = [
   { a: 4, b: 11, stick: false },
 ];
 
-var scale = 30;
-var translation = new THREE.Vector3(0, 190, -40);
+// This constants will control render sizes!!!
+var scale = 20;
+var translation = new THREE.Vector3(0, 80, -30);
+var dipSize = 2;
+var pipSize = 3;
+var mcpSize = 3;
+var palmSize = 4;
+var atomRadius = 5;
+var stickRadius = 2;
 
 var cannonDebugRenderer;
 
@@ -94,8 +104,8 @@ function init() {
     0.1,
     1000
   );
-  camera.position.set(0, 250, 300);
-  camera.lookAt(new THREE.Vector3(0, 250, 0));
+  camera.position.set(0, 180, 180);
+  camera.lookAt(translation);
 
   scene = new THREE.Scene();
 
@@ -107,10 +117,10 @@ function init() {
   // Lights
   var light1 = new THREE.HemisphereLight(0xffffff, 0x424242, 1);
   var light2 = new THREE.PointLight(0xffffff, 0.3, 0);
-  light2.position.set(0, 500, 500);
+  light2.position.set(0, 300, 300);
   light2.shadow.mapSize = new THREE.Vector2(2048, 2048);
   var light3 = new THREE.PointLight(0xffffff, 0.2, 0);
-  light3.position.y = 500;
+  light3.position.y = 300;
   light3.castShadow = true;
   light3.shadow.mapSize = new THREE.Vector2(2048, 2048);
   scene.add(light1);
@@ -161,9 +171,15 @@ function animate() {
 Leap.loop(function (frame) {
   if (frame.hands.length) {
     for (var i = frame.hands.length - 1; i >= 0; i--) {
+      var palm = frame.hands[i].palmPosition;
+      palms.children[i].position.fromArray(palm).multiplyScalar(0.3);
       for (var j = frame.hands[i].fingers.length - 1; j >= 0; j--) {
         var dip = frame.hands[i].fingers[j].dipPosition;
-        hands.children[5 * i + j].position.fromArray(dip);
+        var pip = frame.hands[i].fingers[j].pipPosition;
+        var mcp = frame.hands[i].fingers[j].mcpPosition;
+        dips.children[5 * i + j].position.fromArray(dip).multiplyScalar(0.3);
+        pips.children[5 * i + j].position.fromArray(pip).multiplyScalar(0.3);
+        mcps.children[5 * i + j].position.fromArray(mcp).multiplyScalar(0.3);
       }
     }
   }
@@ -176,7 +192,7 @@ function cylindricalSegment(A, B) {
   vec.normalize();
   var quaternion = new THREE.Quaternion();
   quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vec);
-  var cylinderGeometry = new THREE.CylinderGeometry(3.5, 3.5, h, 32);
+  var cylinderGeometry = new THREE.CylinderGeometry(stickRadius, stickRadius, h, 32);
   var cylinderMaterial = new THREE.MeshPhongMaterial({
     color: 0xffffff,
     emissive: 0x072534,
@@ -198,7 +214,7 @@ function addPlane() {
   body.addShape(shape);
 
   body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-  body.position.set(0, 100, 0);
+  body.position.set(0, 0, 0);
   world.addBody(body);
   bodies.push(body);
 
@@ -208,7 +224,7 @@ function addPlane() {
     emissive: 0x072534,
     shading: THREE.FlatShading,
   });
-  var geometry = new THREE.PlaneGeometry(500, 500);
+  var geometry = new THREE.PlaneGeometry(400, 400);
   var mesh = new THREE.Mesh(geometry, material);
   mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
   mesh.receiveShadow = true;
@@ -269,17 +285,35 @@ function addCube() {
 
 function addHands() {
   // Physics
-  var sphereShape = new CANNON.Sphere(4);
+  var dipShape = new CANNON.Sphere(dipSize);
+  var pipShape = new CANNON.Sphere(pipSize);
+  var mcpShape = new CANNON.Sphere(mcpSize);
+  var palmShape = new CANNON.Sphere(palmSize);
+
   for (var i = 0; i < 10; i++) {
-    handBodies.push(new CANNON.Body({ mass: 0, shape: sphereShape }));
+    dipBodies.push(new CANNON.Body({ mass: 0, shape: dipShape }));
+    pipBodies.push(new CANNON.Body({ mass: 0, shape: pipShape }));
+    mcpBodies.push(new CANNON.Body({ mass: 0, shape: mcpShape }));
   }
 
-  for (var i = handBodies.length - 1; i >= 0; i--) {
-    world.add(handBodies[i]);
+  palmBodies.push(new CANNON.Body({ mass: 0, shape: palmShape }));
+  palmBodies.push(new CANNON.Body({ mass: 0, shape: palmShape }));
+
+  world.addBody(palmBodies[0]);
+  world.addBody(palmBodies[1]);
+
+  for (var i = dipBodies.length - 1; i >= 0; i--) {
+    world.addBody(dipBodies[i]);
+    world.addBody(pipBodies[i]);
+    world.addBody(mcpBodies[i]);
   }
 
   // Graphics
-  hands = new THREE.Object3D();
+  dips = new THREE.Object3D();
+  pips = new THREE.Object3D();
+  mcps = new THREE.Object3D();
+  palms = new THREE.Object3D();
+
   var sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
   var material = new THREE.MeshPhongMaterial({
     color: 0x440381,
@@ -290,10 +324,31 @@ function addHands() {
   for (var i = 0; i < 10; i++) {
     var dip = new THREE.Mesh(sphereGeometry, material);
     dip.castShadow = true;
-    dip.scale.setScalar(4);
-    hands.add(dip);
+    dip.scale.setScalar(dipSize);
+    dips.add(dip);
+
+    var pip = new THREE.Mesh(sphereGeometry, material);
+    pip.castShadow = true;
+    pip.scale.setScalar(pipSize);
+    pips.add(pip);
+
+    var mcp = new THREE.Mesh(sphereGeometry, material);
+    mcp.castShadow = true;
+    mcp.scale.setScalar(mcpSize);
+    mcps.add(mcp);
   }
-  scene.add(hands);
+
+  for (var i = 0; i < 2; i++) {
+    var palm = new THREE.Mesh(sphereGeometry, material);
+    palm.castShadow = true;
+    palm.scale.setScalar(palmSize);
+    palms.add(palm);
+  }
+
+  scene.add(dips);
+  scene.add(pips);
+  scene.add(mcps);
+  scene.add(palms);
 }
 
 function addMolecule() {
@@ -309,14 +364,16 @@ function addMolecule() {
     shading: THREE.FlatShading,
   });
 
-  var atomGeometry = new THREE.SphereGeometry(10, 32, 32);
-  var sphereShape = new CANNON.Sphere(10);
+  var atomGeometry = new THREE.SphereGeometry(atomRadius, 32, 32);
+  var sphereShape = new CANNON.Sphere(atomRadius);
 
   var mass = 1;
 
   for (var i = 0; i < atomCoords.length; i++) {
-    if (i === atomCoords.length - 1) {
+    if (i === 2) {
       mass = 0;
+    } else {
+      mass = 1;
     }
     var atomMaterial = i < 4 ? carbonMaterial : hydrogenMaterial;
     var atom = new THREE.Mesh(atomGeometry, atomMaterial);
@@ -384,9 +441,14 @@ function updateMeshPositions() {
     meshes[i].quaternion.copy(bodies[i].quaternion);
   }
 
-  for (var i = handBodies.length - 1; i >= 0; i--) {
-    handBodies[i].position.copy(hands.children[i].position);
+  for (var i = dipBodies.length - 1; i >= 0; i--) {
+    dipBodies[i].position.copy(dips.children[i].position);
+    pipBodies[i].position.copy(pips.children[i].position);
+    mcpBodies[i].position.copy(mcps.children[i].position);
   }
+
+  palmBodies[0].position.copy(palms.children[0].position);
+  palmBodies[1].position.copy(palms.children[1].position);
 
   for (var i = 0; i < cylinders.children.length; i++) {
     var firstAtom = constraints[i].a - 1;
