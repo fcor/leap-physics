@@ -364,6 +364,12 @@ function addHands() {
   var pipShape = new CANNON.Sphere(pipSize);
   var mcpShape = new CANNON.Sphere(mcpSize);
   var palmShape = new CANNON.Sphere(palmSize);
+  var physicsMaterial = new CANNON.Material()
+  physicsMaterial.friction = 0.5;
+  dipShape.material = physicsMaterial;
+  pipShape.material = physicsMaterial;
+  mcpShape.material = physicsMaterial;
+  palmShape.material = physicsMaterial;
 
   for (var i = 0; i < 5; i++) {
     dipBodiesRight.push(new CANNON.Body({ mass: 0, shape: dipShape }));
@@ -469,6 +475,9 @@ function addMolecule() {
 
   var atomGeometry = new THREE.SphereGeometry(atomRadius, 32, 32);
   var sphereShape = new CANNON.Sphere(atomRadius);
+  var physicsMaterial = new CANNON.Material()
+  physicsMaterial.friction = 0.3;
+  sphereShape.material = physicsMaterial;
 
   var mass = 1;
 
