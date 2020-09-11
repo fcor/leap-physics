@@ -112,7 +112,7 @@ function init() {
   world = new CANNON.World();
   world.gravity.set(0, 0, 0);
 
-  // cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world);
+  cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world);
 
   // Lights
   var light1 = new THREE.HemisphereLight(0xffffff, 0x424242, 1);
@@ -165,7 +165,7 @@ function animate() {
   renderer.render(scene, camera);
   world.step(timestep);
   updateMeshPositions();
-  // cannonDebugRenderer.update();
+  cannonDebugRenderer.update();
 }
 
 Leap.loop(function (frame) {
