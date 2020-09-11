@@ -85,13 +85,13 @@ var constraints = [
 
 // This constants will control render sizes!!!
 var scale = 20;
-var translation = new THREE.Vector3(0, 80, -30);
-var dipSize = 2;
-var pipSize = 3;
-var mcpSize = 3;
-var palmSize = 4;
-var atomRadius = 5;
-var stickRadius = 2;
+var translation = new THREE.Vector3(0, 150, -30);
+var dipSize = 6;
+var pipSize = 6;
+var mcpSize = 6;
+var palmSize = 3;
+var atomRadius = 8;
+var stickRadius = 3;
 
 var cannonDebugRenderer;
 
@@ -112,7 +112,7 @@ function init() {
     0.1,
     1000
   );
-  camera.position.set(0, 180, 180);
+  camera.position.set(0, 210, 180);
   camera.lookAt(translation);
 
   scene = new THREE.Scene();
@@ -214,15 +214,15 @@ Leap.loop({
     }
 
     var palmPosition = hand.palmPosition;
-    palm.position.fromArray(palmPosition).multiplyScalar(0.3);
+    palm.position.fromArray(palmPosition).multiplyScalar(0.5);
 
     for (var j = hand.fingers.length - 1; j >= 0; j--) {
       var dip = hand.fingers[j].dipPosition;
       var pip = hand.fingers[j].pipPosition;
       var mcp = hand.fingers[j].mcpPosition;
-      dips.children[j].position.fromArray(dip).multiplyScalar(0.3);
-      pips.children[j].position.fromArray(pip).multiplyScalar(0.3);
-      mcps.children[j].position.fromArray(mcp).multiplyScalar(0.3);
+      dips.children[j].position.fromArray(dip).multiplyScalar(0.5);
+      pips.children[j].position.fromArray(pip).multiplyScalar(0.5);
+      mcps.children[j].position.fromArray(mcp).multiplyScalar(0.5);
     }
   },
 })
@@ -473,7 +473,7 @@ function addMolecule() {
   var mass = 1;
 
   for (var i = 0; i < atomCoords.length; i++) {
-    if (i === 2) {
+    if (i === 2 || i === 1) {
       mass = 0;
     } else {
       mass = 1;
