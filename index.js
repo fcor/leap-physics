@@ -1,10 +1,16 @@
-var camera, scene, renderer, dips, pips, mcps, palms, world, cylinders, atoms;
+var camera, scene, renderer, world, cylinders, atoms;
+var rightDips, rightPips, rightMcps, rightPalm;
+var leftDips, leftPips, leftMcps, leftPalm;
 var timestep = 1 / 60;
-var dipBodies = [];
-var pipBodies = [];
-var mcpBodies = [];
+var dipBodiesRight = [];
+var pipBodiesRight = [];
+var mcpBodiesRight = [];
+var palmBodyRight;
+var dipBodiesLeft = [];
+var pipBodiesLeft = [];
+var mcpBodiesLeft = [];
+var palmBodyLeft;
 var atomBodies = [];
-var palmBodies = [];
 var bodies = [];
 var meshes = [];
 var rawAtomCoords = [
@@ -112,7 +118,7 @@ function init() {
   world = new CANNON.World();
   world.gravity.set(0, 0, 0);
 
-  cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world);
+  // cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world);
 
   // Lights
   var light1 = new THREE.HemisphereLight(0xffffff, 0x424242, 1);
@@ -165,22 +171,50 @@ function animate() {
   renderer.render(scene, camera);
   world.step(timestep);
   updateMeshPositions();
-  cannonDebugRenderer.update();
+  // cannonDebugRenderer.update();
 }
 
-Leap.loop(function (frame) {
-  if (frame.hands.length) {
-    for (var i = frame.hands.length - 1; i >= 0; i--) {
-      var palm = frame.hands[i].palmPosition;
-      palms.children[i].position.fromArray(palm).multiplyScalar(0.3);
-      for (var j = frame.hands[i].fingers.length - 1; j >= 0; j--) {
-        var dip = frame.hands[i].fingers[j].dipPosition;
-        var pip = frame.hands[i].fingers[j].pipPosition;
-        var mcp = frame.hands[i].fingers[j].mcpPosition;
-        dips.children[5 * i + j].position.fromArray(dip).multiplyScalar(0.3);
-        pips.children[5 * i + j].position.fromArray(pip).multiplyScalar(0.3);
-        mcps.children[5 * i + j].position.fromArray(mcp).multiplyScalar(0.3);
-      }
+Leap.loop({
+  // frame: function (frame) {
+  //   if (frame.hands.length) {
+  //     for (var i = frame.hands.length - 1; i >= 0; i--) {
+  //       var palm = frame.hands[i].palmPosition;
+  //       palms.children[i].position.fromArray(palm).multiplyScalar(0.3);
+  //       for (var j = frame.hands[i].fingers.length - 1; j >= 0; j--) {
+  //         var dip = frame.hands[i].fingers[j].dipPosition;
+  //         var pip = frame.hands[i].fingers[j].pipPosition;
+  //         var mcp = frame.hands[i].fingers[j].mcpPosition;
+  //         dips.children[5 * i + j].position.fromArray(dip).multiplyScalar(0.3);
+  //         pips.children[5 * i + j].position.fromArray(pip).multiplyScalar(0.3);
+  //         mcps.children[5 * i + j].position.fromArray(mcp).multiplyScalar(0.3);
+  //       }
+  //     }
+  //   }
+  // },
+  hand: function(hand){
+    var dips, pips, mcps, palm;
+    if (hand.type === "right") {
+      dips = rightDips;
+      pips = rightPips;
+      mcps = rightMcps;
+      palm = rightPalm;
+    } else {
+      dips = leftDips;
+      pips = leftPips;
+      mcps = leftMcps;
+      palm = leftPalm;
+    }
+
+    var palmPosition = hand.palmPosition;
+    palm.position.fromArray(palmPosition).multiplyScalar(0.3);
+
+    for (var j = hand.fingers.length - 1; j >= 0; j--) {
+      var dip = hand.fingers[j].dipPosition;
+      var pip = hand.fingers[j].pipPosition;
+      var mcp = hand.fingers[j].mcpPosition;
+      dips.children[j].position.fromArray(dip).multiplyScalar(0.3);
+      pips.children[j].position.fromArray(pip).multiplyScalar(0.3);
+      mcps.children[j].position.fromArray(mcp).multiplyScalar(0.3);
     }
   }
 });
@@ -192,7 +226,12 @@ function cylindricalSegment(A, B) {
   vec.normalize();
   var quaternion = new THREE.Quaternion();
   quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vec);
-  var cylinderGeometry = new THREE.CylinderGeometry(stickRadius, stickRadius, h, 32);
+  var cylinderGeometry = new THREE.CylinderGeometry(
+    stickRadius,
+    stickRadius,
+    h,
+    32
+  );
   var cylinderMaterial = new THREE.MeshPhongMaterial({
     color: 0xffffff,
     emissive: 0x072534,
@@ -290,29 +329,42 @@ function addHands() {
   var mcpShape = new CANNON.Sphere(mcpSize);
   var palmShape = new CANNON.Sphere(palmSize);
 
-  for (var i = 0; i < 10; i++) {
-    dipBodies.push(new CANNON.Body({ mass: 0, shape: dipShape }));
-    pipBodies.push(new CANNON.Body({ mass: 0, shape: pipShape }));
-    mcpBodies.push(new CANNON.Body({ mass: 0, shape: mcpShape }));
+  for (var i = 0; i < 5; i++) {
+    dipBodiesRight.push(new CANNON.Body({ mass: 0, shape: dipShape }));
+    pipBodiesRight.push(new CANNON.Body({ mass: 0, shape: pipShape }));
+    mcpBodiesRight.push(new CANNON.Body({ mass: 0, shape: mcpShape }));
+
+    dipBodiesLeft.push(new CANNON.Body({ mass: 0, shape: dipShape }));
+    pipBodiesLeft.push(new CANNON.Body({ mass: 0, shape: pipShape }));
+    mcpBodiesLeft.push(new CANNON.Body({ mass: 0, shape: mcpShape }));
   }
 
-  palmBodies.push(new CANNON.Body({ mass: 0, shape: palmShape }));
-  palmBodies.push(new CANNON.Body({ mass: 0, shape: palmShape }));
+  palmBodyRight = new CANNON.Body({ mass: 0, shape: palmShape });
+  palmBodyLeft  = new CANNON.Body({ mass: 0, shape: palmShape });
 
-  world.addBody(palmBodies[0]);
-  world.addBody(palmBodies[1]);
+  world.addBody(palmBodyRight);
+  world.addBody(palmBodyLeft);
 
-  for (var i = dipBodies.length - 1; i >= 0; i--) {
-    world.addBody(dipBodies[i]);
-    world.addBody(pipBodies[i]);
-    world.addBody(mcpBodies[i]);
+  for (var i = dipBodiesRight.length - 1; i >= 0; i--) {
+    world.addBody(dipBodiesRight[i]);
+    world.addBody(pipBodiesRight[i]);
+    world.addBody(mcpBodiesRight[i]);
+
+    world.addBody(dipBodiesLeft[i]);
+    world.addBody(pipBodiesLeft[i]);
+    world.addBody(mcpBodiesLeft[i]);
   }
 
   // Graphics
-  dips = new THREE.Object3D();
-  pips = new THREE.Object3D();
-  mcps = new THREE.Object3D();
-  palms = new THREE.Object3D();
+  rightDips = new THREE.Object3D();
+  rightPips = new THREE.Object3D();
+  rightMcps = new THREE.Object3D();
+  rightPalm = new THREE.Object3D();
+
+  leftDips = new THREE.Object3D();
+  leftPips = new THREE.Object3D();
+  leftMcps = new THREE.Object3D();
+  leftPalm = new THREE.Object3D();
 
   var sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
   var material = new THREE.MeshPhongMaterial({
@@ -321,34 +373,45 @@ function addHands() {
     shading: THREE.FlatShading,
   });
 
-  for (var i = 0; i < 10; i++) {
+  for (var i = 0; i < 5; i++) {
     var dip = new THREE.Mesh(sphereGeometry, material);
     dip.castShadow = true;
     dip.scale.setScalar(dipSize);
-    dips.add(dip);
+    rightDips.add(dip);
+    leftDips.add(dip.clone());
 
     var pip = new THREE.Mesh(sphereGeometry, material);
     pip.castShadow = true;
     pip.scale.setScalar(pipSize);
-    pips.add(pip);
+    rightPips.add(pip);
+    leftPips.add(pip.clone());
 
     var mcp = new THREE.Mesh(sphereGeometry, material);
     mcp.castShadow = true;
     mcp.scale.setScalar(mcpSize);
-    mcps.add(mcp);
+    rightMcps.add(mcp);
+    leftMcps.add(mcp.clone());
   }
 
-  for (var i = 0; i < 2; i++) {
-    var palm = new THREE.Mesh(sphereGeometry, material);
-    palm.castShadow = true;
-    palm.scale.setScalar(palmSize);
-    palms.add(palm);
-  }
+  rightPalm = new THREE.Mesh(sphereGeometry, material);
+  rightPalm.castShadow = true;
+  rightPalm.scale.setScalar(palmSize);
+  
+  leftPalm = new THREE.Mesh(sphereGeometry, material);
+  leftPalm.castShadow = true;
+  leftPalm.scale.setScalar(palmSize);
 
-  scene.add(dips);
-  scene.add(pips);
-  scene.add(mcps);
-  scene.add(palms);
+  scene.add(rightDips);
+  scene.add(rightPips);
+  scene.add(rightMcps);
+  scene.add(rightPalm);
+
+  scene.add(leftDips);
+  scene.add(leftPips);
+  scene.add(leftMcps);
+  scene.add(leftPalm);
+
+  // console.log(rightPips)
 }
 
 function addMolecule() {
@@ -437,18 +500,25 @@ function updateStick(cylinder, a1, a2) {
 // This function called during render will sync graphics & physics
 function updateMeshPositions() {
   for (var i = 0; i !== meshes.length; i++) {
+    bodies[i].velocity.x = bodies[i].velocity.x / 1.05;
+    bodies[i].velocity.y = bodies[i].velocity.y / 1.05;
+    bodies[i].velocity.z = bodies[i].velocity.z / 1.05;
     meshes[i].position.copy(bodies[i].position);
     meshes[i].quaternion.copy(bodies[i].quaternion);
   }
 
-  for (var i = dipBodies.length - 1; i >= 0; i--) {
-    dipBodies[i].position.copy(dips.children[i].position);
-    pipBodies[i].position.copy(pips.children[i].position);
-    mcpBodies[i].position.copy(mcps.children[i].position);
+  for (var i = dipBodiesRight.length - 1; i >= 0; i--) {
+    dipBodiesRight[i].position.copy(rightDips.children[i].position);
+    pipBodiesRight[i].position.copy(rightPips.children[i].position);
+    mcpBodiesRight[i].position.copy(rightMcps.children[i].position);
+
+    dipBodiesLeft[i].position.copy(leftDips.children[i].position);
+    pipBodiesLeft[i].position.copy(leftPips.children[i].position);
+    mcpBodiesLeft[i].position.copy(leftMcps.children[i].position);
   }
 
-  palmBodies[0].position.copy(palms.children[0].position);
-  palmBodies[1].position.copy(palms.children[1].position);
+  palmBodyRight.position.copy(rightPalm.position);
+  palmBodyLeft.position.copy(leftPalm.position);
 
   for (var i = 0; i < cylinders.children.length; i++) {
     var firstAtom = constraints[i].a - 1;
