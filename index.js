@@ -1,6 +1,8 @@
 var camera, scene, renderer, world, cylinders, atoms;
 var rightDips, rightPips, rightMcps, rightPalm;
 var leftDips, leftPips, leftMcps, leftPalm;
+var rightHandMeshes, leftHandMeshes;
+var rightHandBodies, leftHandBodies;
 var timestep = 1 / 60;
 var dipBodiesRight = [];
 var pipBodiesRight = [];
@@ -175,30 +177,36 @@ function animate() {
 }
 
 Leap.loop({
-  // frame: function (frame) {
-  //   if (frame.hands.length) {
-  //     for (var i = frame.hands.length - 1; i >= 0; i--) {
-  //       var palm = frame.hands[i].palmPosition;
-  //       palms.children[i].position.fromArray(palm).multiplyScalar(0.3);
-  //       for (var j = frame.hands[i].fingers.length - 1; j >= 0; j--) {
-  //         var dip = frame.hands[i].fingers[j].dipPosition;
-  //         var pip = frame.hands[i].fingers[j].pipPosition;
-  //         var mcp = frame.hands[i].fingers[j].mcpPosition;
-  //         dips.children[5 * i + j].position.fromArray(dip).multiplyScalar(0.3);
-  //         pips.children[5 * i + j].position.fromArray(pip).multiplyScalar(0.3);
-  //         mcps.children[5 * i + j].position.fromArray(mcp).multiplyScalar(0.3);
-  //       }
-  //     }
-  //   }
-  // },
-  hand: function(hand){
+  hand: function (hand) {
     var dips, pips, mcps, palm;
     if (hand.type === "right") {
+      rightHandMeshes.visible = true;
+      dipBodiesRight.forEach(function (body) {
+        world.addBody(body);
+      });
+      pipBodiesRight.forEach(function (body) {
+        world.addBody(body);
+      });
+      mcpBodiesRight.forEach(function (body) {
+        world.addBody(body);
+      });
+      world.addBody(palmBodyRight);
       dips = rightDips;
       pips = rightPips;
       mcps = rightMcps;
       palm = rightPalm;
     } else {
+      leftHandMeshes.visible = true;
+      dipBodiesLeft.forEach(function (body) {
+        world.addBody(body);
+      });
+      pipBodiesLeft.forEach(function (body) {
+        world.addBody(body);
+      });
+      mcpBodiesLeft.forEach(function (body) {
+        world.addBody(body);
+      });
+      world.addBody(palmBodyLeft);
       dips = leftDips;
       pips = leftPips;
       mcps = leftMcps;
@@ -216,8 +224,36 @@ Leap.loop({
       pips.children[j].position.fromArray(pip).multiplyScalar(0.3);
       mcps.children[j].position.fromArray(mcp).multiplyScalar(0.3);
     }
-  }
-});
+  },
+})
+  .use("handEntry")
+  .on("handLost", function (hand) {
+    if (hand.type === "right") {
+      rightHandMeshes.visible = false;
+      dipBodiesRight.forEach(function (body) {
+        world.removeBody(body);
+      });
+      pipBodiesRight.forEach(function (body) {
+        world.removeBody(body);
+      });
+      mcpBodiesRight.forEach(function (body) {
+        world.removeBody(body);
+      });
+      world.removeBody(palmBodyRight);
+    } else {
+      leftHandMeshes.visible = false;
+      dipBodiesLeft.forEach(function (body) {
+        world.removeBody(body);
+      });
+      pipBodiesLeft.forEach(function (body) {
+        world.removeBody(body);
+      });
+      mcpBodiesLeft.forEach(function (body) {
+        world.removeBody(body);
+      });
+      world.removeBody(palmBodyLeft);
+    }
+  });
 
 function cylindricalSegment(A, B) {
   var vec = B.clone();
@@ -340,7 +376,7 @@ function addHands() {
   }
 
   palmBodyRight = new CANNON.Body({ mass: 0, shape: palmShape });
-  palmBodyLeft  = new CANNON.Body({ mass: 0, shape: palmShape });
+  palmBodyLeft = new CANNON.Body({ mass: 0, shape: palmShape });
 
   world.addBody(palmBodyRight);
   world.addBody(palmBodyLeft);
@@ -365,6 +401,9 @@ function addHands() {
   leftPips = new THREE.Object3D();
   leftMcps = new THREE.Object3D();
   leftPalm = new THREE.Object3D();
+
+  rightHandMeshes = new THREE.Object3D();
+  leftHandMeshes = new THREE.Object3D();
 
   var sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
   var material = new THREE.MeshPhongMaterial({
@@ -396,22 +435,23 @@ function addHands() {
   rightPalm = new THREE.Mesh(sphereGeometry, material);
   rightPalm.castShadow = true;
   rightPalm.scale.setScalar(palmSize);
-  
+
   leftPalm = new THREE.Mesh(sphereGeometry, material);
   leftPalm.castShadow = true;
   leftPalm.scale.setScalar(palmSize);
 
-  scene.add(rightDips);
-  scene.add(rightPips);
-  scene.add(rightMcps);
-  scene.add(rightPalm);
+  rightHandMeshes.add(rightDips);
+  rightHandMeshes.add(rightPips);
+  rightHandMeshes.add(rightMcps);
+  rightHandMeshes.add(rightPalm);
 
-  scene.add(leftDips);
-  scene.add(leftPips);
-  scene.add(leftMcps);
-  scene.add(leftPalm);
+  leftHandMeshes.add(leftDips);
+  leftHandMeshes.add(leftPips);
+  leftHandMeshes.add(leftMcps);
+  leftHandMeshes.add(leftPalm);
 
-  // console.log(rightPips)
+  scene.add(rightHandMeshes);
+  scene.add(leftHandMeshes);
 }
 
 function addMolecule() {
